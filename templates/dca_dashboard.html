@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin DCA Decision Dashboard</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Bitcoin Dollar Cost Averaging position size calculator with market sentiment analysis">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BTC DCA">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .settings {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .settings label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .settings input {
+            width: 200px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .settings button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+
+        .settings button:hover {
+            background: #5568d3;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        /* Primary Strategy Card - Fear & Greed */
+        .card.primary-strategy {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .card.primary-strategy h2 {
+            color: white;
+            font-size: 28px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            margin-bottom: 20px;
+        }
+
+        .card.primary-strategy .strategy-note {
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .fg-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .fg-metric-box {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Supplementary Metrics Section */
+        .supplementary-section h3 {
+            color: white;
+            font-size: 20px;
+            margin: 30px 0 15px 0;
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        .supplementary-section .section-note {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .card.supplementary {
+            opacity: 0.95;
+            transform: scale(0.95);
+        }
+
+        .card.supplementary h2 {
+            font-size: 16px;
+        }
+
+        .card.supplementary .metric-value {
+            font-size: 24px;
+        }
+
+        .metric {
+            margin: 15px 0;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-value.large {
+            font-size: 42px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+
+        .badge.extreme-fear {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge.fear {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .badge.neutral {
+            background: #6c757d;
+            color: white;
+        }
+
+        .badge.greed {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge.extreme-greed {
+            background: #155724;
+            color: white;
+        }
+
+        .badge.warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .badge.info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .recommendation h2 {
+            color: white;
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .recommendation .amount {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .recommendation .multiplier {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+
+        .protection-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .protection-list li {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin: 5px 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.green {
+            background: #28a745;
+        }
+
+        .status-indicator.red {
+            background: #dc3545;
+        }
+
+        .status-indicator.yellow {
+            background: #ffc107;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #dc3545;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        /* Percentile Display Styles */
+        .percentile-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .percentile-marker {
+            position: absolute;
+            top: -4px;
+            width: 16px;
+            height: 16px;
+            background: #667eea;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .percentile-zones {
+            display: flex;
+            height: 100%;
+        }
+
+        .zone {
+            height: 100%;
+        }
+
+        .zone.bottom {
+            width: 10%;
+            background: #28a745;
+        }
+
+        .zone.middle {
+            width: 80%;
+            background: #e0e0e0;
+        }
+
+        .zone.top {
+            width: 10%;
+            background: #dc3545;
+        }
+
+        .zone.special-top {
+            background: #28a745;
+        }
+
+        .percentile-label {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .signal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+
+        .signal-badge.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .signal-badge.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .signal-badge.warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .signal-badge.neutral {
+            background: #6c757d;
+            color: white;
+        }
+
+        .special-signals {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .special-signals h2 {
+            color: white;
+            border: none;
+            margin-bottom: 15px;
+        }
+
+        .signal-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .signal-item {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .signal-item strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .signal-item span {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .percentile-info {
+            font-size: 12px;
+            color: #666;
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Bitcoin DCA Decision Dashboard</h1>
+            <p>Sentiment-driven position sizing calculator for systematic Bitcoin accumulation</p>
+        </div>
+
+        <div class="settings">
+            <label for="baseAmount">Base Weekly Amount ($):</label>
+            <input type="number" id="baseAmount" value="100" min="10" step="10">
+            <button onclick="updateDashboard()">Update</button>
+            <button onclick="refreshData()">🔄 Refresh Data</button>
+        </div>
+
+        <div id="dashboard"></div>
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+
+        async function fetchRecommendation() {
+            const baseAmount = document.getElementById('baseAmount').value;
+            const response = await fetch(`/api/recommendation?base_amount=${baseAmount}`);
+            return await response.json();
+        }
+
+        async function fetchPercentileSignals() {
+            const response = await fetch('/api/percentile_signals');
+            return await response.json();
+        }
+
+        function renderPercentileBar(percentile, isReversed = false) {
+            const pos = Math.min(100, Math.max(0, percentile));
+            return `
+                <div class="percentile-bar">
+                    <div class="percentile-zones">
+                        <div class="zone ${isReversed ? 'special-top' : 'bottom'}"></div>
+                        <div class="zone middle"></div>
+                        <div class="zone ${isReversed ? 'bottom' : 'top'}"></div>
+                    </div>
+                    <div class="percentile-marker" style="left: ${pos}%"></div>
+                </div>
+                <div class="percentile-label">${pos.toFixed(0)}th percentile</div>
+            `;
+        }
+
+        function getSignalEmoji(signal) {
+            const map = {
+                'Multiplier Increase': '🟢',
+                'Multiplier Decrease': '🔴',
+                'Normal Range': '⚪'
+            };
+            return map[signal] || '⚪';
+        }
+
+        function getFearGreedClass(classification) {
+            const map = {
+                'Extreme Fear': 'extreme-fear',
+                'Fear': 'fear',
+                'Neutral': 'neutral',
+                'Greed': 'greed',
+                'Extreme Greed': 'extreme-greed'
+            };
+            return map[classification] || 'neutral';
+        }
+
+        function updateDashboard() {
+            document.getElementById('dashboard').innerHTML = '<div class="loading">Loading market data...</div>';
+
+            Promise.all([fetchRecommendation(), fetchPercentileSignals()])
+                .then(([data, percentileData]) => {
+                if (!data.success) {
+                    document.getElementById('dashboard').innerHTML = `
+                        <div class="error">
+                            <strong>Error:</strong> ${data.error}
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Build percentile special conditions card
+                let specialConditionsHtml = '';
+                if (percentileData.success && percentileData.signals) {
+                    const signals = percentileData.signals;
+                    const summary = percentileData.summary;
+
+                    const specialSignals = Object.entries(signals)
+                        .filter(([key, sig]) => sig.success && sig.signal !== 'Normal Range')
+                        .map(([key, sig]) => ({
+                            name: key.replace('_', ' ').toUpperCase(),
+                            signal: sig.signal,
+                            interpretation: sig.interpretation,
+                            value: sig.current_value,
+                            unit: sig.unit
+                        }));
+
+                    if (specialSignals.length > 0) {
+                        specialConditionsHtml = `
+                            <div class="special-signals">
+                                <h2>⭐ Special Market Conditions Detected (${specialSignals.length})</h2>
+                                <div class="signal-list">
+                                    ${specialSignals.map(s => `
+                                        <div class="signal-item">
+                                            <strong>${getSignalEmoji(s.signal)} ${s.name}</strong>
+                                            <span>${s.signal}</span><br>
+                                            <span style="font-size: 11px; opacity: 0.8;">${s.interpretation}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div style="margin-top: 15px; font-size: 13px; opacity: 0.9;">
+                                    ${summary.increase_count} increase signal${summary.increase_count !== 1 ? 's' : ''} •
+                                    ${summary.decrease_count} decrease signal${summary.decrease_count !== 1 ? 's' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                const html = `
+                    ${specialConditionsHtml}
+
+                    <!-- MARKET REGIME DETECTION -->
+                    ${data.regime && data.regime.type ? `
+                        <div class="card" style="background: linear-gradient(135deg, ${
+                            data.regime.type === 'BULL' ? '#28a745, #20c997' :
+                            data.regime.type === 'BEAR' ? '#dc3545, #fd7e14' :
+                            '#6c757d, #adb5bd'
+                        }); color: white; grid-column: 1 / -1; margin-bottom: 20px;">
+                            <h2 style="color: white; border-bottom: 2px solid rgba(255,255,255,0.3);">
+                                ${data.regime.type === 'BULL' ? '🐂' : data.regime.type === 'BEAR' ? '🐻' : '⚖️'}
+                                Market Regime: ${data.regime.type}
+                            </h2>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">REGIME STATUS</div>
+                                    <div style="font-size: 32px; font-weight: bold;">${data.regime.type}</div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">${data.regime.description}</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">EXPECTED WIN RATE</div>
+                                    <div style="font-size: 32px; font-weight: bold;">${data.expected_winrate ? data.expected_winrate.toFixed(1) + '%' : 'N/A'}</div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">30-day probability</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">SIGNAL CONFIDENCE</div>
+                                    <div style="font-size: 28px; font-weight: bold;">
+                                        ${data.signal_confidence === 'HIGH' ? '⭐⭐⭐' :
+                                          data.signal_confidence === 'MEDIUM' ? '⭐⭐' :
+                                          data.signal_confidence === 'LOW' ? '⭐' : ''}
+                                        ${data.signal_confidence}
+                                    </div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">${data.base_multiplier_reason}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- BEAR MARKET ALLOCATION PHASE - Only show if bounce override is NOT active -->
+                    ${data.bear_allocation_phase && !data.bounce_override && data.bear_classification && data.bear_classification.brutal_probability > 30 ? `
+                        <div class="card" style="background: linear-gradient(135deg, #fd7e14, #dc3545); color: white; grid-column: 1 / -1; margin-bottom: 20px;">
+                            <h2 style="color: white; border-bottom: 2px solid rgba(255,255,255,0.3);">
+                                📊 Bear Market Allocation Phase
+                            </h2>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;">
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">CURRENT PHASE</div>
+                                    <div style="font-size: 28px; font-weight: bold;">${data.bear_allocation_phase.phase_name}</div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">${data.bear_allocation_phase.description}</div>
+                                    <div style="font-size: 11px; opacity: 0.75; margin-top: 8px; font-style: italic;">
+                                        Confidence: ${data.bear_allocation_phase.confidence}
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">TIME FROM PEAK</div>
+                                    <div style="font-size: 32px; font-weight: bold;">
+                                        ${data.drawdown.months_from_peak} mo
+                                    </div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">
+                                        ${data.drawdown.days_from_peak} days from peak
+                                    </div>
+                                    <div style="font-size: 11px; opacity: 0.75; margin-top: 5px;">
+                                        Peak: ${data.drawdown.peak_date}
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">PHASE ALLOCATION</div>
+                                    <div style="font-size: 32px; font-weight: bold;">${data.bear_allocation_phase.allocation_pct.toFixed(0)}%</div>
+                                    <div style="font-size: 13px; opacity: 0.85; margin-top: 5px;">
+                                        Multiplier: ${data.bear_allocation_phase.final_multiplier.toFixed(2)}×
+                                    </div>
+                                    <div style="font-size: 11px; opacity: 0.75; margin-top: 5px;">
+                                        ${data.bear_allocation_phase.fg_note}
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; backdrop-filter: blur(10px);">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">HISTORICAL CONTEXT</div>
+                                    <div style="font-size: 11px; opacity: 0.85; line-height: 1.5;">
+                                        ${data.bear_allocation_phase.historical_note}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 12px; line-height: 1.6;">
+                                <strong>📚 Historical Bear Market Milestones:</strong><br>
+                                • 27 days → -20% (First warning)<br>
+                                • 39 days → -30% (Bear confirmation)<br>
+                                • 99 days → -40% (Panic begins - START HEAVY BUYING)<br>
+                                • 196 days → -50% (Deep fear - MAXIMUM ALLOCATION)<br>
+                                • 280 days → -60% (Capitulation - GENERATIONAL BOTTOM)
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- BEAR MARKET RISK CLASSIFICATION - PROMINENT SECTION -->
+                    ${data.bear_classification && data.bear_classification.success ? `
+                    <div class="card" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; margin-bottom: 25px; border: 3px solid ${data.bear_classification.verdict_color === 'success' ? '#28a745' : data.bear_classification.verdict_color === 'danger' ? '#dc3545' : '#ffc107'};">
+                        <h2 style="color: white; margin-bottom: 20px; font-size: 24px;">🎯 Bear Market Risk Assessment</h2>
+
+                        <!-- Probability Bar -->
+                        <div style="margin-bottom: 25px;">
+                            <div style="font-size: 16px; margin-bottom: 10px; opacity: 0.9;">Historical Pattern Match:</div>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="flex: 1; height: 40px; background: rgba(255,255,255,0.1); border-radius: 20px; overflow: hidden; position: relative;">
+                                    <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${data.bear_classification.bounce_probability}%; background: linear-gradient(90deg, #28a745, #20c997); border-radius: 20px; transition: width 0.5s;"></div>
+                                    <div style="position: absolute; right: 0; top: 0; height: 100%; width: ${data.bear_classification.brutal_probability}%; background: linear-gradient(90deg, #ff6b6b, #dc3545); border-radius: 20px; transition: width 0.5s;"></div>
+                                    <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                                        ${data.bear_classification.bounce_probability}% Bounce | ${data.bear_classification.brutal_probability}% Brutal
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verdict -->
+                        <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+                            <div style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">
+                                ${data.bear_classification.verdict_text}
+                            </div>
+                            <div style="font-size: 14px; opacity: 0.9;">
+                                ${data.bear_classification.verdict === 'LIKELY_QUICK_BOUNCE' ? 'This looks more like a healthy correction than a brutal bear market' :
+                                  data.bear_classification.verdict === 'LEANING_BOUNCE' ? 'Slightly more characteristics of a bounce, but stay cautious' :
+                                  data.bear_classification.verdict === 'LIKELY_BRUTAL_BEAR' ? 'This has characteristics of major bear markets - expect -50%+ total drawdown' :
+                                  'Mixed signals - could go either way. Monitor closely.'}
+                            </div>
+                            ${data.bear_classification.adjustment_reason ? `
+                            <div style="margin-top: 15px; padding: 12px; background: ${data.bear_classification.multiplier_adjustment > 1.0 ? 'rgba(40,167,69,0.2)' : 'rgba(255,193,7,0.2)'}; border-left: 4px solid ${data.bear_classification.multiplier_adjustment > 1.0 ? '#28a745' : '#ffc107'}; border-radius: 6px; font-size: 13px;">
+                                ${data.bear_classification.multiplier_adjustment > 1.0 ? '🚀' : '⚙️'} <strong>${data.bear_classification.multiplier_adjustment > 1.0 ? 'Multiplier Boost Active' : 'Auto-Adjustment Active'}:</strong> ${data.bear_classification.adjustment_reason}
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Comparison Table -->
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px;">
+                            <div style="font-size: 16px; margin-bottom: 15px; font-weight: 600;">📊 Current vs Brutal Bear Averages</div>
+                            <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 12px; font-size: 14px;">
+                                <div style="font-weight: 600; opacity: 0.8;">Metric</div>
+                                <div style="font-weight: 600; text-align: center;">Current</div>
+                                <div style="font-weight: 600; text-align: center;">Brutal Avg</div>
+                                <div style="font-weight: 600; text-align: center;">Signal</div>
+
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2);">DD from ATH</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.current_dd_from_ath.toFixed(1)}%</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.brutal_avg_dd}%</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.current_dd_from_ath > -40 ? '✅' : '❌'}</div>
+
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2);">Months from ATH</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.months_from_ath.toFixed(1)}</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.brutal_avg_months}</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.months_from_ath < 2 ? '⚠️' : '✅'}</div>
+
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2);">Bull run size</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">+${data.bear_classification.factors.bull_run_gain_pct}%</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">+${data.bear_classification.factors.brutal_avg_bull_run}%</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.bull_run_gain_pct < 700 ? '✅' : '❌'}</div>
+
+                                ${data.bear_classification.factors.months_from_halving ? `
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2);">Halving cycle</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.months_from_halving.toFixed(1)} mo</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">N/A</div>
+                                <div style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">${data.bear_classification.factors.months_from_halving < 24 ? '✅' : '⚠️'}</div>
+                                ` : ''}
+                            </div>
+
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 12px; opacity: 0.8;">
+                                📊 <strong>Historical Context:</strong> Of 46 times BTC crossed below 200-MA, 42 bounced back quickly (91.3%) while 4 became brutal bears (8.7%). Current characteristics are being compared against these patterns.
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- PRIMARY STRATEGY: Fear & Greed Index -->
+                    <div class="grid">
+                        <div class="card primary-strategy">
+                            <h2>😱 Fear & Greed Index - PRIMARY STRATEGY SIGNAL</h2>
+                            <div class="strategy-note">
+                                <strong>📊 This strategy combines Fear & Greed Index with Market Regime Detection.</strong><br>
+                                ${data.regime && data.regime.type ?
+                                    `In ${data.regime.type} markets, we use ${data.regime.type === 'BULL' ? 'higher F&G thresholds' : data.regime.type === 'BEAR' ? 'lower F&G thresholds' : 'balanced thresholds'} for optimal buying.` :
+                                    'Buy more when others are fearful (low F&G), buy less or skip when others are greedy (high F&G).'
+                                }<br>
+                                The metrics below provide additional context for fine-tuning, but F&G + Regime drives the core allocation.
+                            </div>
+
+                            <div class="fg-metrics">
+                                <div class="fg-metric-box">
+                                    <div class="metric-label" style="color: rgba(255,255,255,0.8);">Current Value</div>
+                                    <div class="metric-value large" style="color: white; font-size: 56px;">${data.fear_greed.value}</div>
+                                    <span class="badge ${getFearGreedClass(data.fear_greed.classification)}" style="font-size: 18px; margin-top: 10px;">
+                                        ${data.fear_greed.classification}
+                                    </span>
+                                </div>
+
+                                <div class="fg-metric-box">
+                                    <div class="metric-label" style="color: rgba(255,255,255,0.8);">Base Multiplier</div>
+                                    <div class="metric-value" style="color: white; font-size: 48px;">${data.base_multiplier}×</div>
+                                    <div style="color: rgba(255,255,255,0.9); margin-top: 10px; font-size: 14px;">
+                                        = $${(data.base_amount * data.base_multiplier).toFixed(0)} purchase
+                                    </div>
+                                </div>
+
+                                <div class="fg-metric-box">
+                                    <div style="font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.95);">
+                                        <strong style="display: block; margin-bottom: 8px; font-size: 14px;">
+                                            ${data.regime && data.regime.type ? `${data.regime.type} Market Thresholds:` : 'Multiplier Table:'}
+                                        </strong>
+                                        ${data.regime && data.regime.type === 'BEAR' ? `
+                                            <div style="margin: 5px 0;">F&G ≤18: <strong>3.0×</strong> (Extreme Fear - 65.8% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 19-21: <strong>2.0×</strong> (Deep Fear - 55.4% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 22-30: <strong>0.5×</strong> (Moderate Fear)</div>
+                                            <div style="margin: 5px 0;">F&G 31+: <strong>SKIP</strong> (Too High - 10% WR)</div>
+                                        ` : data.regime && data.regime.type === 'BULL' ? `
+                                            <div style="margin: 5px 0;">F&G ≤31: <strong>3.0×</strong> (Extreme Fear - 75.2% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 32-45: <strong>2.5×</strong> (Fear - 71% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 46-60: <strong>1.5×</strong> (Neutral - 62% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 61-72: <strong>0.7×</strong> (Mild Greed)</div>
+                                            <div style="margin: 5px 0;">F&G 73+: <strong>SKIP</strong> (High Greed - 44% WR)</div>
+                                        ` : `
+                                            <div style="margin: 5px 0;">F&G ≤25: <strong>2.5×</strong> (Extreme Fear - 65% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 26-45: <strong>1.5×</strong> (Fear - 60% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 46-60: <strong>0.8×</strong> (Neutral - 52% WR)</div>
+                                            <div style="margin: 5px 0;">F&G 61+: <strong>SKIP</strong> (Greed - 45% WR)</div>
+                                        `}
+                                    </div>
+                                </div>
+
+                                <div class="fg-metric-box">
+                                    <div class="metric-label" style="color: rgba(255,255,255,0.8);">BTC Price</div>
+                                    <div class="metric-value" style="color: white; font-size: 32px;">$${data.btc_price.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                                    <div style="color: rgba(255,255,255,0.8); margin-top: 5px; font-size: 12px;">
+                                        Current market price
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUPPLEMENTARY METRICS -->
+                    <div class="supplementary-section">
+                        <h3>📈 Supplementary Technical Indicators</h3>
+                        <div class="section-note">
+                            Additional signals for context and fine-tuning. Percentile rankings show when metrics are at historical extremes.
+                        </div>
+                    </div>
+
+                    <div class="grid">
+
+                        <div class="card supplementary">
+                            <h2>📊 200-Day MA</h2>
+                            ${data.ma_200.success ? `
+                                <div class="metric">
+                                    <div class="metric-label">Moving Average</div>
+                                    <div class="metric-value">$${data.ma_200.ma_200.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Price vs MA</div>
+                                    <div class="metric-value" style="font-size: 24px;">
+                                        ${data.ma_200.pct_above > 0 ? '+' : ''}${data.ma_200.pct_above.toFixed(1)}%
+                                    </div>
+                                </div>
+                                ${percentileData.success && percentileData.signals.ma_distance ? `
+                                    <div class="percentile-info">
+                                        <strong>Percentile Signal:</strong>
+                                        <span class="signal-badge ${percentileData.signals.ma_distance.badge_color}">
+                                            ${getSignalEmoji(percentileData.signals.ma_distance.signal)} ${percentileData.signals.ma_distance.signal}
+                                        </span>
+                                        ${renderPercentileBar(percentileData.signals.ma_distance.percentile_rank, false)}
+                                        <div style="font-size: 11px; margin-top: 5px; color: #666;">
+                                            ${percentileData.signals.ma_distance.interpretation}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    ${data.ma_200.pct_above > 50 ?
+                                        '<span class="badge warning">⚠️ Overheated (>50% above MA)</span>' :
+                                        data.ma_200.pct_above > 0 ?
+                                        '<span class="badge info">✓ Above MA (Healthy)</span>' :
+                                        data.ma_200.pct_above > -20 ?
+                                        '<span class="badge" style="background: #28a745; color: white;">💰 Below MA (Opportunity)</span>' :
+                                        '<span class="badge" style="background: #dc3545; color: white;">💰💰 Deep Discount (>20% below MA)</span>'
+                                    }
+                                `}
+                            ` : '<p>Data unavailable</p>'}
+                        </div>
+
+                        <div class="card supplementary">
+                            <h2>📈 RSI (14-day)</h2>
+                            ${data.rsi.success ? `
+                                <div class="metric">
+                                    <div class="metric-label">Current RSI</div>
+                                    <div class="metric-value">${data.rsi.rsi.toFixed(1)}</div>
+                                </div>
+                                ${percentileData.success && percentileData.signals.rsi ? `
+                                    <div class="percentile-info">
+                                        <strong>Percentile Signal:</strong>
+                                        <span class="signal-badge ${percentileData.signals.rsi.badge_color}">
+                                            ${getSignalEmoji(percentileData.signals.rsi.signal)} ${percentileData.signals.rsi.signal}
+                                        </span>
+                                        ${renderPercentileBar(percentileData.signals.rsi.percentile_rank, false)}
+                                        <div style="font-size: 11px; margin-top: 5px; color: #666;">
+                                            ${percentileData.signals.rsi.interpretation}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    ${data.rsi.overheated ?
+                                        '<span class="badge warning">🔥 Overheated (>80)</span>' :
+                                        '<span class="badge info">✓ Normal Range</span>'
+                                    }
+                                `}
+                            ` : '<p>Data unavailable</p>'}
+                        </div>
+
+                        <div class="card supplementary">
+                            <h2>⚡ Volatility (30-day)</h2>
+                            ${data.volatility.success ? `
+                                <div class="metric">
+                                    <div class="metric-label">Annualized Volatility</div>
+                                    <div class="metric-value">${data.volatility.volatility.toFixed(1)}%</div>
+                                </div>
+                                ${percentileData.success && percentileData.signals.volatility ? `
+                                    <div class="percentile-info">
+                                        <strong>Percentile Signal:</strong>
+                                        <span class="signal-badge ${percentileData.signals.volatility.badge_color}">
+                                            ${getSignalEmoji(percentileData.signals.volatility.signal)} ${percentileData.signals.volatility.signal}
+                                        </span>
+                                        ${renderPercentileBar(percentileData.signals.volatility.percentile_rank, false)}
+                                        <div style="font-size: 11px; margin-top: 5px; color: #666;">
+                                            ${percentileData.signals.volatility.interpretation}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="metric">
+                                        <div class="metric-label">Level</div>
+                                        <span class="badge info">${data.volatility.level}</span>
+                                    </div>
+                                `}
+                            ` : '<p>Data unavailable</p>'}
+                        </div>
+
+                        <div class="card supplementary">
+                            <h2>💸 Funding Rate</h2>
+                            ${data.funding_rate && data.funding_rate.success ? `
+                                <div class="metric">
+                                    <div class="metric-label">Current Rate (8h)</div>
+                                    <div class="metric-value">${data.funding_rate.funding_pct.toFixed(4)}%</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Market Sentiment</div>
+                                    <span class="badge ${
+                                        data.funding_rate.color === 'danger' ? 'warning' :
+                                        data.funding_rate.color === 'success' ? 'info' :
+                                        data.funding_rate.color === 'warning' ? 'warning' :
+                                        'neutral'
+                                    }">${data.funding_rate.classification}</span>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Interpretation</div>
+                                    <div style="font-size: 13px; color: #666; margin-top: 5px;">
+                                        ${data.funding_rate.signal}
+                                    </div>
+                                </div>
+                                <div style="font-size: 11px; color: #999; margin-top: 10px;">
+                                    💡 High positive funding = over-leveraged longs<br>
+                                    💡 High negative funding = over-leveraged shorts
+                                </div>
+                            ` : '<p>Data unavailable</p>'}
+                        </div>
+
+                        <div class="card supplementary">
+                            <h2>🔬 MVRV Ratio</h2>
+                            ${data.mvrv.success ? `
+                                <div class="metric">
+                                    <div class="metric-label">Current MVRV</div>
+                                    <div class="metric-value">${data.mvrv.mvrv.toFixed(2)}</div>
+                                    ${data.mvrv.estimated ? `
+                                        <div style="font-size: 11px; color: #6c757d; margin-top: 5px;">
+                                            🧮 Smart Estimation (${(data.mvrv.confidence * 100).toFixed(0)}% confidence)
+                                        </div>
+                                        ${data.mvrv.cycle_phase ? `<div style="font-size: 11px; color: #007bff; margin-top: 3px;">
+                                            📅 Cycle: ${data.mvrv.cycle_phase.replace('_', ' ')}
+                                        </div>` : ''}
+                                    ` : '<div style="font-size: 11px; color: #28a745; margin-top: 5px;">✓ Real-time data</div>'}
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Valuation Zone</div>
+                                    <span class="badge ${
+                                        data.mvrv.color === 'danger' ? 'extreme-greed' :
+                                        data.mvrv.color === 'warning' ? 'warning' :
+                                        data.mvrv.color === 'success' ? 'extreme-fear' :
+                                        'info'
+                                    }">${data.mvrv.zone}</span>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Recommendation</div>
+                                    <div style="font-size: 16px; font-weight: 600; margin-top: 5px;">
+                                        ${data.mvrv.signal}
+                                    </div>
+                                    <span class="badge info" style="margin-top: 5px;">${data.mvrv.multiplier_suggestion} suggested</span>
+                                </div>
+                            ` : '<p>Data unavailable</p>'}
+                        </div>
+                    </div>
+
+                    <div class="recommendation">
+                        <h2>💰 Recommended Purchase Amount</h2>
+                        <div class="amount">$${data.recommended_amount.toFixed(2)}</div>
+                        <div class="multiplier">
+                            ${data.final_multiplier}× multiplier
+                            ${data.final_multiplier !== data.base_multiplier ?
+                                `(base ${data.base_multiplier}× adjusted by protections)` :
+                                `(${data.base_multiplier_reason})`
+                            }
+                        </div>
+
+                        ${data.opportunities_applied && data.opportunities_applied.length > 0 ? `
+                            <div style="margin-top: 20px;">
+                                <h3 style="font-size: 18px; margin-bottom: 10px; color: #28a745;">🎯 Opportunities Detected:</h3>
+                                <ul class="protection-list">
+                                    ${data.opportunities_applied.map(p => `<li style="color: #28a745;">📈 ${p}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        ${data.protections_applied.length > 0 ? `
+                            <div style="margin-top: 20px;">
+                                <h3 style="font-size: 18px; margin-bottom: 10px;">⚠️ Protections Applied:</h3>
+                                <ul class="protection-list">
+                                    ${data.protections_applied.map(p => `<li>🛡️ ${p}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        ${data.protections_applied.length === 0 && (!data.opportunities_applied || data.opportunities_applied.length === 0) ? `
+                            <div style="margin-top: 20px;">
+                                <span class="badge" style="background: rgba(255,255,255,0.2); font-size: 16px;">
+                                    ✓ Normal market conditions - standard DCA
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- REFERENCE GUIDES - Manual Decision Support -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-top: 30px;">
+
+                        <!-- Fear & Greed Win Rate Guide -->
+                        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h2 style="color: white; margin-bottom: 15px;">📊 Fear & Greed Win Rate Guide</h2>
+                            <div style="font-size: 11px; opacity: 0.8; margin-bottom: 15px;">ℹ️ The decision is mine manually after all</div>
+
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">🐻 BEAR MARKET (F&G is generally LOW):</div>
+                                <div style="font-family: monospace; font-size: 12px; line-height: 1.8;">
+                                    <div>6-18   ████████████████████ 65% WR ✅ BUY HERE</div>
+                                    <div>19-21  ████████████████     55% WR ✅ OK</div>
+                                    <div>22-30  ████████             30% WR ⚠️ Risky</div>
+                                    <div>31-43  ███                  10% WR 🛑 Avoid</div>
+                                    <div>44-74  █                     3% WR 🛑 NEVER</div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">🐂 BULL MARKET (F&G is generally HIGH):</div>
+                                <div style="font-family: monospace; font-size: 12px; line-height: 1.8;">
+                                    <div>10-31  ████████████████████ 75% WR ✅ BUY HERE</div>
+                                    <div>32-45  ████████████████████ 71% WR ✅ Great</div>
+                                    <div>46-60  ██████████████       62% WR 🟡 OK</div>
+                                    <div>61-72  ██████████           55% WR 🟡 Careful</div>
+                                    <div>73-77  ████                 40% WR 🛑 Risky</div>
+                                    <div>78-94  ████████             44% WR 🛑 Avoid</div>
+                                </div>
+                                <div style="font-size: 11px; opacity: 0.7; margin-top: 10px;">
+                                    Exception: Not confirmed now!
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bear Market Timing Guide -->
+                        <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            <h2 style="color: white; margin-bottom: 15px;">📊 Average Bear Market Timing</h2>
+
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">Total Duration: ~9.3 months (peak to bottom)</div>
+                                <div style="font-size: 13px; line-height: 1.6;">
+                                    <div><strong>Phase Breakdown:</strong></div>
+                                    <div style="margin-left: 10px;">
+                                        <div>• SHALLOW (0-40% down): 5.0 months on average</div>
+                                        <div>• MODERATE (40-60% down): 1.8 months</div>
+                                        <div>• DEEP (>60% down): 2.0 months</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                <div style="font-weight: 600; margin-bottom: 10px;">Drawdown Velocity (How fast price falls):</div>
+                                <div style="font-family: monospace; font-size: 12px; line-height: 1.6;">
+                                    <div style="display: grid; grid-template-columns: 80px 1fr; gap: 10px;">
+                                        <div style="font-weight: 600;">Milestone</div>
+                                        <div style="font-weight: 600;">Avg Time from Peak</div>
+                                        <div>-20%</div><div>27 days (0.9 months)</div>
+                                        <div>-30%</div><div>39 days (1.3 months)</div>
+                                        <div>-40% ⚠️</div><div>99 days (3.3 months)</div>
+                                        <div>-50%</div><div>196 days (6.5 months)</div>
+                                        <div>-60%</div><div>280 days (9.3 months)</div>
+                                        <div>-70%</div><div>222 days (7.4 months)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('dashboard').innerHTML = html;
+                document.getElementById('timestamp').textContent =
+                    `Last updated: ${new Date(data.timestamp).toLocaleString()}`;
+            }).catch(error => {
+                console.error('Dashboard error:', error);
+                document.getElementById('dashboard').innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> Failed to fetch data. ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        async function refreshData() {
+            await fetch('/api/refresh');
+            updateDashboard();
+        }
+
+        // Initial load
+        updateDashboard();
+
+        // Auto-refresh every 5 minutes
+        autoRefreshInterval = setInterval(updateDashboard, 300000);
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registration successful:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // Install prompt for PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            // Show install button/banner (optional - could add UI element here)
+            console.log('PWA install prompt available');
+        });
+    </script>
+</body>
+</html>
