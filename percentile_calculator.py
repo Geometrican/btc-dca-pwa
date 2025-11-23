@@ -25,7 +25,7 @@ class PercentileCalculator:
             data_path: Path to BTCUSDT_1d.csv file. If None, uses default location.
         """
         if data_path is None:
-            data_path = Path(__file__).parent.parent.parent / "data" / "BTCUSDT_1d.csv"
+            data_path = Path(__file__).parent / "data" / "BTCUSDT_1d.csv"
 
         self.data_path = Path(data_path)
         self.df = None

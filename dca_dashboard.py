@@ -125,7 +125,7 @@ class DCACalculator:
 
         try:
             # Try to use local data first
-            data_path = Path(__file__).parent.parent.parent / "data" / "BTCUSDT_1d.csv"
+            data_path = Path(__file__).parent / "data" / "BTCUSDT_1d.csv"
             if data_path.exists():
                 df = pd.read_csv(data_path)
                 df['date'] = pd.to_datetime(df['time_period_end']).dt.tz_localize(None)
@@ -1196,7 +1196,7 @@ class DCACalculator:
             prices_df = self.get_historical_prices(2)
             if len(prices_df) > 0:
                 # Need to get volume from the data file directly
-                data_path = Path(__file__).parent.parent.parent / "data" / "BTCUSDT_1d.csv"
+                data_path = Path(__file__).parent / "data" / "BTCUSDT_1d.csv"
                 if data_path.exists():
                     df = pd.read_csv(data_path)
                     df['date'] = pd.to_datetime(df['time_period_end']).dt.tz_localize(None)
