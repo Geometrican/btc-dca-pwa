@@ -9,7 +9,7 @@ Real-time web UI showing all indicators needed for sentiment-driven DCA purchase
 - Final recommended purchase amount
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, abort
 import requests
 import pandas as pd
 import numpy as np
@@ -17,10 +17,36 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import json
 import os
+from functools import wraps
 from percentile_calculator import PercentileCalculator
 from mvrv_estimator import MVRVEstimator, load_historical_prices
 
 app = Flask(__name__)
+
+# IP Whitelist Configuration
+# Set ALLOWED_IPS environment variable on Render with comma-separated IPs
+# Example: "123.456.789.0,98.765.432.1" or set to "all" to disable
+ALLOWED_IPS = os.environ.get('ALLOWED_IPS', 'all')
+
+def check_ip_whitelist():
+    """Middleware to check if request IP is whitelisted"""
+    if ALLOWED_IPS == 'all':
+        return  # IP filtering disabled
+
+    # Get client IP (works with Render's proxy setup)
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ',' in client_ip:
+        client_ip = client_ip.split(',')[0].strip()
+
+    allowed_ips = [ip.strip() for ip in ALLOWED_IPS.split(',')]
+
+    if client_ip not in allowed_ips:
+        abort(403)  # Forbidden
+
+@app.before_request
+def before_request():
+    """Run before each request"""
+    check_ip_whitelist()
 
 class DCACalculator:
     """Calculate DCA recommendations based on current market conditions"""
@@ -1290,6 +1316,19 @@ def get_percentile_signals():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/myip')
+def get_my_ip():
+    """Helper endpoint to show your current IP address"""
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ',' in client_ip:
+        client_ip = client_ip.split(',')[0].strip()
+
+    return jsonify({
+        'your_ip': client_ip,
+        'message': f'Add this IP to ALLOWED_IPS environment variable on Render: {client_ip}'
+    })
 
 
 if __name__ == '__main__':
