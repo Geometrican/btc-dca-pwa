@@ -212,7 +212,7 @@ class MVRVEstimator:
 def load_historical_prices(data_path: str = None) -> pd.Series:
     """Load historical BTC prices for MVRV calculation"""
     if data_path is None:
-        data_path = Path(__file__).parent.parent.parent / "data" / "BTCUSDT_1d.csv"
+        data_path = Path(__file__).parent / "data" / "BTCUSDT_1d.csv"
 
     try:
         df = pd.read_csv(data_path)
